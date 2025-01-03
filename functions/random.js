@@ -32,7 +32,9 @@ export async function onRequest(context) {
     let allRecords = await getRandomFileList(env, requestUrl);
 
     // 筛选出符合fileType要求的记录
-    allRecords = allRecords.filter(item => { return fileType.some(type => item.FileType.includes(type)) });
+    allRecords = allRecords.filter(item => { 
+        return fileType.some(type => item.FileType.includes(type)) && item.name.includes("kon");
+    });
 
 
     if (allRecords.length == 0) {
