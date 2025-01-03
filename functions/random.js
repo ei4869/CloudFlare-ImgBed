@@ -78,11 +78,9 @@ async function getRandomFileList(env, url) {
     const cache = caches.default;
     const cacheRes = await cache.match(`${url.origin}/api/randomFileList`);
     if (cacheRes) {
-        console.log("Cache hit: Returning cached data.");
         return JSON.parse(await cacheRes.text());
     }
 
-    console.log("Cache miss: Fetching data from KV database.");
     let allRecords = [];
     let cursor = null;
 
@@ -91,37 +89,20 @@ async function getRandomFileList(env, url) {
             limit: 1000,
             cursor,
         });
-
-        console.log("Fetched records from KV:", records.keys.map(item => item.name)); // 输出获取到的记录名称
-
-        // 筛选逻辑：
-        // 1. 除去以 manage@ 开头的记录
-        let filteredRecords = records.keys.filter(item => !item.name.startsWith("manage@"));
-        console.log("After removing 'manage@':", filteredRecords.map(item => item.name));
-
-        // 2. 保留 fileType 为 image 或 video 的记录
-        filteredRecords = filteredRecords.filter(item => 
-            item.metadata?.FileType?.includes("image") || item.metadata?.FileType?.includes("video")
-        );
-        console.log("After filtering by FileType:", filteredRecords.map(item => item.name));
-
-        // 3. 仅保留 name 中包含 'kon' 的记录
-        filteredRecords = filteredRecords.filter(item => item.name.includes("kon"));
-        console.log("After filtering by 'kon':", filteredRecords.map(item => item.name));
-
-        allRecords.push(...filteredRecords);
+        // 除去records中key以manage@开头的记录
+        records.keys = records.keys.filter(item => !item.name.startsWith("manage@"));
+        // 保留metadata中fileType为image或video的记录
+        records.keys = records.keys.filter(item => item.metadata?.FileType?.includes("image") || item.metadata?.FileType?.includes("video"));
+        allRecords.push(...records.keys);
         cursor = records.cursor;
     } while (cursor);
 
-    // 调试输出：最终筛选的记录
-    console.log("Final filtered records:", allRecords.map(item => item.name));
-
-    // 仅保留记录的 name 和 metadata.FileType 字段
+    // 仅保留记录的name和metadata中的FileType字段
     allRecords = allRecords.map(item => {
         return {
             name: item.name,
             FileType: item.metadata?.FileType
-        };
+        }
     });
 
     // 缓存结果，缓存时间为24小时
@@ -132,7 +113,6 @@ async function getRandomFileList(env, url) {
     }), {
         expirationTtl: 24 * 60 * 60
     });
-
-    console.log("Data cached successfully.");
+    
     return allRecords;
 }
